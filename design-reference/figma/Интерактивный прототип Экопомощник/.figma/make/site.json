@@ -1,0 +1,10 @@
+{
+  "description": "Find local recycling points and disposal tips for unwanted items with an easy-to-use interface designed for eco-conscious users.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

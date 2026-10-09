@@ -1,0 +1,15 @@
+[
+  {
+    "id": "figma-waste-burning-misclassified-as-disposal",
+    "input": "Во дворе постоянно сжигают мусор. Что делать?",
+    "prototypeFile": "design-reference/figma/Интерактивный прототип Экопомощник/src/app.js",
+    "prototypeFunction": "aiResponse",
+    "prototypeObservedIntent": "find_disposal",
+    "prototypeObservedView": "guide",
+    "reason": "В aiResponse сначала проверяется выражение сдать|переработ|мусор|батаре|одежд|стекл|пластик|вещ. Слово мусор совпадает до проверки сжига и других признаков нарушения.",
+    "expectedIntent": "environmental_violation",
+    "expectedViolationTypeCode": "waste_burning",
+    "expectedDestination": "/violations.html",
+    "status": "Сохранено для проверки общего LLM-сервиса и отчёта после подключения AI. Сейчас классификатор не реализован."
+  }
+]

@@ -1,0 +1,9 @@
+:root { font-family: system-ui, sans-serif; color: #1b2a21; background: #f5f6f0; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { width: min(860px, calc(100% - 32px)); margin: 64px auto; line-height: 1.6; }
+h1, h2 { color: #163b2a; line-height: 1.2; }
+a { color: #176b45; text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid #176b45; outline-offset: 4px; }
+li + li { margin-top: 12px; }
+.notice { margin-top: 32px; padding: 20px; border: 1px solid #c9d7c5; background: #e6eee3; }
