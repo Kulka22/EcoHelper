@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Сообщить о нарушении — Экопомощник</title>
+  <link rel="stylesheet" href="/css/site.css"><script type="module" src="/js/violations.js"></script>
+</head>
+<body data-page="violations"><div id="app">
+  <div data-site-header></div>
+  <main class="page" id="main-content">
+    <p class="storage-notice advice-note" role="status" hidden></p>
+    <nav class="steps" id="wizard-steps" aria-label="Этапы рекомендаций"></nav>
+    <form class="form-screen" id="violation-type-form" data-panel="type">
+      <h1 class="form-title" tabindex="-1">Что произошло?</h1><p class="form-hint">Выберите подходящий тип и при желании дополните его описанием.</p>
+      <div class="violation-types" id="violation-types" aria-label="Тип нарушения" aria-live="polite" aria-busy="true"></div>
+      <label class="description-field" for="description"><span class="field-label">Описание <span>(необязательно)</span></span><textarea id="description" name="description" maxlength="1500" placeholder="Например: мусор регулярно сжигают рядом с домом" aria-describedby="description-note"></textarea></label>
+      <p class="advice-note" id="description-note">Описание сохранится в этой вкладке. Распознавание свободного текста появится позже — сейчас выберите готовый тип.</p>
+      <p class="field-error" id="type-error" role="alert" hidden></p>
+      <div class="form-actions"><button class="button" type="submit">Продолжить →</button></div>
+    </form>
+    <form class="form-screen" id="violation-location-form" data-panel="location" hidden>
+      <p class="search-context" id="violation-context"></p><h1 class="form-title" tabindex="-1">Где это происходит?</h1><p class="form-hint">Укажите город, адрес или ориентир — это поможет выбрать организацию.</p>
+      <label class="location-field"><span class="field-label">Местоположение <span>(необязательно)</span></span><input id="location" name="location" maxlength="300" placeholder="Например, Москва, район Дорогомилово" autocomplete="off"></label>
+      <div class="form-actions"><button class="button-secondary" type="button" data-go="type">← Назад к описанию</button><button class="button" type="submit">Показать рекомендации</button></div>
+    </form>
+    <section class="result-screen" data-panel="result" hidden>
+      <p class="search-context" id="result-context"></p><h1 class="result-title" id="result-title" tabindex="-1"></h1><div class="results" id="results" aria-live="polite" aria-busy="false"></div>
+      <div class="result-actions"><button class="button-secondary" type="button" data-go="location">← Назад к местоположению</button><button class="text-link" type="button" id="new-situation">Другая ситуация</button></div>
+    </section>
+    <noscript><p class="empty">Для получения рекомендаций включите JavaScript в браузере.</p></noscript>
+  </main><div data-site-footer></div>
+</div></body>
+</html>

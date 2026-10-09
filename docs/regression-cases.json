@@ -10,6 +10,9 @@
     "expectedIntent": "environmental_violation",
     "expectedViolationTypeCode": "waste_burning",
     "expectedDestination": "/violations.html",
-    "status": "Сохранено для проверки общего LLM-сервиса и отчёта после подключения AI. Сейчас классификатор не реализован."
+    "status": "Проверено через реальный Gemini API и интерфейс AI-помощника: environmental_violation, waste_burning, переход /violations.html. Исходный пример ошибки Figma сохранён.",
+    "verifiedModel": "gemini-3.5-flash-lite",
+    "verifiedAt": "2026-10-09",
+    "verificationScript": "scripts/test-chat.mjs"
   }
 ]

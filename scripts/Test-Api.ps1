@@ -183,8 +183,8 @@ try {
         }
     }
 
-    Test-Case 'AI endpoint has not been added at this stage' {
-        Assert ((Get-Response '/api/chat').Status -eq 404) 'Unexpected AI endpoint.'
+    Test-Case 'Chat endpoint accepts POST only; GET does not invoke LLM' {
+        Assert ((Get-Response '/api/chat').Status -eq 405) 'Expected POST-only chat endpoint.'
     }
 }
 finally {

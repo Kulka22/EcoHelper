@@ -23,6 +23,9 @@ if (connectionString.DataSource != ":memory:")
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connectionString.ToString()));
 builder.Services.AddScoped<RecyclingService>();
 builder.Services.AddScoped<ViolationService>();
+builder.Services.AddScoped<ChatService>();
+builder.Services.AddHttpClient<ILlmIntentService, GeminiIntentService>(client =>
+    client.Timeout = Timeout.InfiniteTimeSpan).RemoveAllLoggers();
 
 var app = builder.Build();
 

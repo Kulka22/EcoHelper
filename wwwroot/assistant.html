@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI-помощник — Экопомощник</title>
+  <link rel="stylesheet" href="/css/site.css"><script type="module" src="/js/assistant.js"></script>
+</head>
+<body data-page="assistant"><div id="app">
+  <div data-site-header></div>
+  <main class="page" id="main-content"><section class="ai-chat" aria-labelledby="ai-title">
+    <div class="ai-heading"><p class="eyebrow">AI-помощник</p><h1 class="form-title" id="ai-title">Чем могу помочь?</h1><p class="form-hint">Помогу разобраться с экологическими ситуациями и выбрать нужный раздел сервиса.</p></div>
+    <p class="advice-note storage-notice" role="status" hidden></p>
+    <div class="chat-dialogue" id="chat-dialogue" role="log" aria-label="Текущий диалог" aria-live="polite" aria-relevant="additions text"><div class="chat-message assistant-message"><p>Здравствуйте! Я помогу найти пункт сдачи вещей, получить рекомендации при экологическом нарушении или перейти в нужный раздел Экопомощника.</p><div class="assistant-links"><a class="chat-action" href="/recycling.html">Куда сдать →</a><a class="chat-action" href="/violations.html">Сообщить о нарушении →</a></div></div></div>
+    <form class="chat-form" id="chat-form"><label class="visually-hidden" for="ai-question">Ваш вопрос</label><input id="ai-question" name="message" placeholder="Напишите ваш вопрос" required maxlength="2000" autocomplete="off" aria-describedby="assistant-note"><button class="button" type="submit">Отправить</button></form><p class="advice-note" id="assistant-note">Сообщение передаётся AI-сервису для определения запроса. Сведения берутся из базы Экопомощника. Диалог исчезнет после перезагрузки страницы.</p>
+    <noscript><p class="advice-note">Включите JavaScript, чтобы отправить сообщение.</p></noscript>
+  </section></main><div data-site-footer></div>
+</div></body>
+</html>

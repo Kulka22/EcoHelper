@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Куда сдать — Экопомощник</title>
+  <link rel="stylesheet" href="/css/site.css"><script type="module" src="/js/recycling.js"></script>
+</head>
+<body data-page="recycling"><div id="app">
+  <div data-site-header></div>
+  <main class="page" id="main-content">
+    <p class="storage-notice advice-note" role="status" hidden></p>
+    <section data-panel="intro" class="guide-intro">
+      <div class="guide-copy"><p class="eyebrow">Сервис для осознанного города</p><h1 class="display">Найдём, куда сдать <span class="display-accent">вещь</span> с пользой</h1><p class="lead">Подскажем, как подготовить предмет и где его примут.</p><button class="button" type="button" data-go="item">Начать поиск →</button></div>
+      <aside class="info-block"><div class="info-panel"><p class="eyebrow">Маленький шаг</p><p class="info-title">У вещей всегда есть следующий маршрут.</p><p class="info-text">Выбирайте повторное использование, переработку или правильную утилизацию.</p></div><p class="info-caption">В демонстрационной базе — учебные пункты Москвы. Их адреса и часы работы приведены для знакомства с сервисом.</p></aside>
+    </section>
+    <nav class="steps" id="wizard-steps" aria-label="Этапы поиска" hidden></nav>
+    <form class="form-screen" id="item-form" data-panel="item" hidden>
+      <h1 class="form-title" tabindex="-1"><label for="item">Что вы хотите сдать?</label></h1><p class="form-hint">Укажите предмет или выберите категорию из справочника.</p>
+      <div class="input-row"><input id="item" name="item" maxlength="120" required placeholder="Введите название предмета" autocomplete="off"><button class="button" type="submit">Продолжить →</button></div>
+      <div class="popular" id="popular-items" aria-live="polite"></div>
+    </form>
+    <form class="form-screen" id="location-form" data-panel="location" hidden>
+      <p class="search-context" id="item-context"></p><h1 class="form-title" tabindex="-1">Где вы находитесь?</h1>
+      <div class="input-group"><label><span class="field-label">Город</span><input id="city" name="city" maxlength="120" required autocomplete="address-level2"></label><label><span class="field-label">Район (необязательно)</span><input id="district" name="district" maxlength="120" placeholder="Например, Арбат" autocomplete="off"></label></div>
+      <div class="form-actions"><button class="button-secondary" type="button" data-go="item">← Вернуться к предмету</button><button class="button" type="submit">Показать пункты</button></div>
+    </form>
+    <section class="result-screen" data-panel="result" hidden>
+      <p class="search-context" id="result-context"></p><h1 class="result-title" id="result-title" tabindex="-1"></h1>
+      <div class="results" id="results" aria-live="polite" aria-busy="false"></div>
+      <div class="result-actions"><button class="button-secondary" type="button" data-go="location">← Назад к местоположению</button><button class="text-link" type="button" id="new-search">Искать другой предмет</button></div>
+    </section>
+    <noscript><p class="empty">Для пошагового поиска включите JavaScript в браузере.</p></noscript>
+  </main><div data-site-footer></div>
+</div></body>
+</html>
