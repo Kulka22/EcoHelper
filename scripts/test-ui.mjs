@@ -37,11 +37,13 @@ async function recyclingLocation(page, item = 'Стеклянная банка')
   await page.getByRole('button', { name: 'Начать поиск' }).click();
   await page.getByLabel('Что вы хотите сдать?').fill(item);
   await clickSubmit(page, '#item-form');
+  await page.locator('#region').fill('Москва');
 }
 async function violationLocation(page) {
   await page.goto('/violations.html');
   await page.getByRole('button', { name: 'Сжигание мусора', exact: true }).click();
   await clickSubmit(page, '#violation-type-form');
+  await page.locator('#region').fill('Москва');
 }
 async function screenshot(page, name) {
   await page.evaluate(() => document.fonts.ready);
@@ -71,7 +73,7 @@ try {
     const gate = new Promise(resolve => { release = resolve; });
     await page.route('**/api/recycling/search?**', async route => { await gate; await route.continue(); });
     await recyclingLocation(page);
-    await page.getByLabel('Город', { exact: true }).fill('Москва');
+    await page.getByLabel('Регион', { exact: true }).fill('Москва');
     await page.getByLabel('Район (необязательно)').fill('Дорогомилово');
     await clickSubmit(page, '#location-form');
     await visible(page.getByText('Ищем подходящие пункты', { exact: true }));
@@ -85,7 +87,7 @@ try {
 
   await check('Recycling draft survives back, refresh and navigation; new search clears it', async page => {
     await recyclingLocation(page, 'Батарейки');
-    await page.getByLabel('Город', { exact: true }).fill('Москва');
+    await page.getByLabel('Регион', { exact: true }).fill('Москва');
     await page.getByLabel('Район (необязательно)').fill('Арбат');
     await page.getByRole('button', { name: 'Вернуться к предмету' }).click();
     assert.equal(await page.locator('#item').inputValue(), 'Батарейки');
@@ -112,7 +114,7 @@ try {
 
   await check('Empty recycling results preserve category preparation', async page => {
     await recyclingLocation(page);
-    await page.getByLabel('Город', { exact: true }).fill('Казань');
+    await page.getByLabel('Регион', { exact: true }).fill('Казань');
     await clickSubmit(page, '#location-form');
     await visible(page.getByRole('heading', { name: 'Подходящие пункты не найдены' }));
     assert.match(await page.locator('#results').innerText(), /Освободите стеклянную тару/);
@@ -157,12 +159,12 @@ try {
     await page.getByRole('button', { name: 'Сжигание мусора', exact: true }).click();
     assert.equal(await page.locator('#description').inputValue(), 'Во дворе постоянно сжигают мусор. Что делать?');
     await clickSubmit(page, '#violation-type-form');
-    await page.getByLabel('Местоположение').fill('Москва, район Арбат');
+    await page.getByLabel('Регион', { exact: true }).fill('Москва');
     await page.getByRole('button', { name: 'Назад к описанию' }).click();
     assert.equal(await page.getByRole('button', { name: 'Сжигание мусора', exact: true }).getAttribute('aria-pressed'), 'true');
     assert.match(await page.locator('#description').inputValue(), /сжигают мусор/);
     await clickSubmit(page, '#violation-type-form');
-    assert.equal(await page.locator('#location').inputValue(), 'Москва, район Арбат');
+    assert.equal(await page.locator('#region').inputValue(), 'Москва');
     await clickSubmit(page, '#violation-location-form');
     await visible(page.getByRole('heading', { name: 'Департамент природопользования и охраны окружающей среды города Москвы', exact: true }));
     assert.match(await page.locator('#results').innerText(), /Держитесь на безопасном расстоянии/);
@@ -172,25 +174,24 @@ try {
     await visible(page.locator('[data-panel="result"]'));
     await visible(page.getByRole('heading', { name: 'Росприроднадзор', exact: true }));
     await page.getByRole('button', { name: 'Назад к местоположению' }).click();
-    assert.equal(await page.locator('#location').inputValue(), 'Москва, район Арбат');
+    assert.equal(await page.locator('#region').inputValue(), 'Москва');
   });
 
-  await check('Violations without location return general advice', async page => {
+  await check('Violations in an unsupported region return general advice', async page => {
     await violationLocation(page);
+    await page.locator('#region').fill('Неизвестный регион');
     await clickSubmit(page, '#violation-location-form');
     await visible(page.getByRole('heading', { name: 'Росприроднадзор', exact: true }));
-    assert.match(await page.locator('#results').innerText(), /Местоположение не указано/);
+    assert.match(await page.locator('#results').innerText(), /В указанном регионе/);
     assert.equal(await page.getByRole('link', { name: /Подробнее об обращении/ }).count(), 1);
   });
 
-  await check('Description alone asks for a ready type without calling LLM', async page => {
+  await check('Missing type and description asks for input without calling LLM', async page => {
     await page.goto('/violations.html');
     await page.getByRole('button', { name: 'Сжигание мусора', exact: true }).waitFor();
-    await page.locator('#description').fill('Во дворе постоянно сжигают мусор. Что делать?');
     await clickSubmit(page, '#violation-type-form');
     await visible(page.locator('#type-error'));
-    assert.match(await page.locator('#type-error').innerText(), /Выберите готовый тип/);
-    assert.match(await page.locator('#description').inputValue(), /сжигают мусор/);
+    assert.match(await page.locator('#type-error').innerText(), /Выберите тип нарушения или опишите/);
   });
 
   await check('Violations network error and retry', async page => {

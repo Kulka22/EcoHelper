@@ -26,7 +26,9 @@ async function requestJson(path, { signal, method = 'GET', body, timeoutMs = 150
     try { payload = await response.json(); } catch { throw new Error('Сервер вернул неожиданный ответ. Повторите запрос позже.'); }
     if (!response.ok) {
       const validation = Object.values(payload?.errors ?? {}).flat().join(' ');
-      throw new Error(validation || payload?.detail || `Сервер вернул ошибку ${response.status}. Повторите запрос позже.`);
+      const error = new Error(validation || payload?.detail || `Сервер вернул ошибку ${response.status}. Повторите запрос позже.`);
+      error.status = response.status;
+      throw error;
     }
     return payload;
   } catch (error) {

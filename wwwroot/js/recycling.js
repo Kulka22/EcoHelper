@@ -14,7 +14,7 @@ draft.bindInputs();
 function go(screen, focus = true) {
   if (!['intro', ...steps.map(step => step.id)].includes(screen)) screen = 'intro';
   if (['location', 'result'].includes(screen) && !state.item.trim()) screen = 'item';
-  if (screen === 'result' && !state.city.trim()) screen = 'location';
+  if (screen === 'result' && !state.region.trim()) screen = 'location';
   pending?.abort();
   requestId++;
   state.screen = screen;
@@ -22,7 +22,7 @@ function go(screen, focus = true) {
   updateSteps(steps, screen);
   showPanel(screen, focus);
   document.querySelector('#item-context').textContent = `Ищем пункты для: ${state.item}`;
-  document.querySelector('#result-context').textContent = [state.city, state.district].filter(value => value.trim()).join(' · ');
+  document.querySelector('#result-context').textContent = [state.region, state.settlement, state.district].filter(value => value.trim()).join(' · ');
   document.querySelector('#result-title').textContent = `Подходящие варианты для: ${state.item}`;
   if (screen === 'result') loadResults();
 }
@@ -40,13 +40,13 @@ async function loadResults() {
   pending = new AbortController();
   const id = ++requestId;
   results.setAttribute('aria-busy', 'true');
-  results.innerHTML = loadingMarkup('Ищем подходящие пункты', 'Проверяем категории и условия приёма в выбранном городе.');
+  results.innerHTML = loadingMarkup('Ищем подходящие пункты', 'Проверяем категории и условия приёма в указанном регионе.');
   try {
-    const data = await getJson('/api/recycling/search', { item: state.item, city: state.city, district: state.district }, { signal: pending.signal });
+    const data = await getJson('/api/recycling/search', { item: state.item, region: state.region, settlement: state.settlement, district: state.district }, { signal: pending.signal });
     if (id !== requestId) return;
     const preparation = data.preparationInstructions.length ? `<aside class="prep"><h2 class="notice-title">Подготовьте${data.category ? `: ${escapeHtml(data.category.name)}` : ''}</h2>${instructionList(data.preparationInstructions)}</aside>` : '';
-    const points = data.points.length ? `<section><p class="points-label">Подходящие пункты: ${data.points.length}</p>${data.points.map(point => `<article class="point"><h2 class="point-name">${escapeHtml(point.name)}</h2><p class="point-address">${escapeHtml(point.address)}</p><div class="point-meta"><span class="point-hours">${escapeHtml(point.workingHours)}</span><span class="point-accepts">Принимают: ${escapeHtml(point.acceptedCategories.map(category => category.name).join(', '))}</span></div>${externalLink(point.website, 'Сайт пункта')}</article>`).join('')}</section>` : emptyMarkup('Подходящие пункты не найдены', data.message || 'Попробуйте изменить город, район или предмет.');
-    results.innerHTML = demoMarkup(data.isDemoData, true) + (preparation ? `<div class="found-results">${preparation}${points}</div>` : points);
+    const points = data.points.length ? `<section><p class="points-label">Подходящие пункты: ${data.points.length}</p>${data.points.map(point => `<article class="point"><h2 class="point-name">${escapeHtml(point.name)}</h2><p class="point-address">${escapeHtml(point.address)}</p><div class="point-meta"><span class="point-hours">${escapeHtml(point.workingHours)}</span><span class="point-accepts">Принимают: ${escapeHtml(point.acceptedCategories.map(category => category.name).join(', '))}</span></div>${externalLink(point.website, 'Сайт пункта')}</article>`).join('')}</section>` : emptyMarkup('Подходящие пункты не найдены', data.message || 'Попробуйте изменить местоположение или предмет.');
+    results.innerHTML = demoMarkup(data.isDemoData, true) + (data.points.length && data.message ? `<p class="advice-note">${escapeHtml(data.message)}</p>` : '') + (preparation ? `<div class="found-results">${preparation}${points}</div>` : points);
   } catch (error) {
     if (id === requestId && error.name !== 'AbortError') results.innerHTML = errorMarkup(error, 'results');
   } finally { if (id === requestId) results.setAttribute('aria-busy', 'false'); }
@@ -58,7 +58,7 @@ document.querySelector('#item-form').addEventListener('submit', event => {
 });
 document.querySelector('#location-form').addEventListener('submit', event => {
   event.preventDefault();
-  if (validateRequired(document.querySelector('#city'), 'Укажите город.')) go('result');
+  if (validateRequired(document.querySelector('#region'), 'Укажите регион.')) go('result');
 });
 document.querySelector('main').addEventListener('click', event => {
   const button = event.target.closest('button');

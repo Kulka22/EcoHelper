@@ -13,6 +13,8 @@ public static class SeedData
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         if (await db.WasteCategories.AnyAsync(cancellationToken))
         {
+            await AddRegionalDemoAsync(db, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return;
         }
@@ -88,7 +90,7 @@ public static class SeedData
             violation.Organizations.Add(new Organization
             {
                 Name = "Департамент природопользования и охраны окружающей среды города Москвы",
-                City = "Москва",
+                Region = "Москва",
                 Website = "https://www.mos.ru/eco/",
                 Description = "Информация о природоохранных вопросах Москвы. Перед обращением уточните компетенцию и актуальный порядок приёма на официальном сайте."
             });
@@ -101,6 +103,8 @@ public static class SeedData
         }
 
         db.ViolationTypes.AddRange(violations);
+        await db.SaveChangesAsync(cancellationToken);
+        await AddRegionalDemoAsync(db, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
@@ -117,13 +121,50 @@ public static class SeedData
     private static CollectionPoint Point(string name, string district, int number, string hours, params WasteCategory[] categories) => new()
     {
         Name = name,
-        City = "Москва",
+        Region = "Москва",
         District = district,
         Address = $"Демонстрационный адрес №{number}, район {district}",
         WorkingHours = hours,
         CollectionPointWasteCategories = categories.Select(category =>
             new CollectionPointWasteCategory { WasteCategory = category }).ToList()
     };
+
+    private static async Task AddRegionalDemoAsync(AppDbContext db, CancellationToken ct)
+    {
+        // New educational locations are added once, for both new and previously seeded databases.
+        var categories = await db.WasteCategories.ToArrayAsync(ct);
+        var types = await db.ViolationTypes.ToArrayAsync(ct);
+        (string Region, string? Settlement, string District, string Label)[] locations =
+        [
+            ("Санкт-Петербург", null, "Петроградский", "Петербург"),
+            ("Ленинградская область", "Всеволожск", "Всеволожский", "Всеволожск"),
+            ("Ленинградская область", "Кудрово", "Всеволожский", "Кудрово"),
+            ("Ленинградская область", "Гатчина", "Гатчинский", "Гатчина")
+        ];
+        foreach (var entry in locations)
+        {
+            var pointName = $"Учебный пункт «{entry.Label}»";
+            if (!await db.CollectionPoints.AnyAsync(point => point.Name == pointName, ct))
+                db.CollectionPoints.Add(new CollectionPoint
+                {
+                    Name = pointName, Region = entry.Region, Settlement = entry.Settlement, District = entry.District,
+                    Address = $"Демонстрационный адрес, {entry.Region}, {entry.Settlement ?? entry.District}",
+                    WorkingHours = "Демо: ежедневно 10:00–18:00",
+                    CollectionPointWasteCategories = categories.Select(category => new CollectionPointWasteCategory { WasteCategory = category }).ToList()
+                });
+            foreach (var type in types)
+            {
+                var name = $"Учебная организация «{entry.Label}»";
+                if (!await db.Organizations.AnyAsync(organization => organization.Name == name && organization.ViolationTypeId == type.Id, ct))
+                    db.Organizations.Add(new Organization
+                    {
+                        Name = name, Region = entry.Region, Settlement = entry.Settlement, District = entry.District,
+                        ViolationTypeId = type.Id, Website = string.Empty,
+                        Description = "Учебный пример для проверки подбора по региону, населённому пункту и району. Не является действующей службой для обращений."
+                    });
+            }
+        }
+    }
 
     private static ViolationType Violation(string code, string name, string[] recommendations, string[] whatToRecord) => new()
     {

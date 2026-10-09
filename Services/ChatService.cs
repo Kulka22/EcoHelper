@@ -17,23 +17,25 @@ public sealed class ChatService(ILlmIntentService llm, RecyclingService recyclin
         switch (analysis.Intent)
         {
             case "find_disposal":
-                var parameters = new ChatScenarioParameters(analysis.Item, analysis.City, analysis.District);
-                if (analysis.Item is null || analysis.City is null)
+                var parameters = new ChatScenarioParameters(analysis.Item, analysis.Region, analysis.Settlement, analysis.District);
+                if (analysis.Item is null || analysis.Region is null)
                     return new(analysis.Intent, analysis.Item is null
-                        ? "Укажите предмет и город в разделе «Куда сдать», чтобы найти пункты в базе."
-                        : "Укажите город в разделе «Куда сдать», чтобы найти пункты в базе.", [RecyclingAction(parameters)]);
-                var found = await recycling.SearchAsync(new() { Item = analysis.Item, City = analysis.City, District = analysis.District }, cancellationToken);
+                        ? "Укажите предмет и регион в разделе «Куда сдать», чтобы найти пункты в базе."
+                        : "Укажите регион в разделе «Куда сдать», чтобы найти пункты в базе.", [RecyclingAction(parameters)]);
+                var found = await recycling.SearchAsync(new() { Item = analysis.Item, Region = analysis.Region, Settlement = analysis.Settlement, District = analysis.District }, cancellationToken);
                 return new(analysis.Intent, found.Category is null
                     ? found.Message!
                     : found.Points.Count == 0 ? found.Message!
-                    : $"В демонстрационной базе найдены пункты: {found.Points.Count}. Категория: {found.Category.Name}.",
+                    : $"В демонстрационной базе найдены пункты: {found.Points.Count}. Категория: {found.Category.Name}. {found.Message}".Trim(),
                     [RecyclingAction(parameters)], Recycling: found);
 
             case "environmental_violation":
-                var violationParameters = new ChatScenarioParameters(ViolationType: analysis.ViolationType, Location: analysis.Location);
+                var violationParameters = new ChatScenarioParameters(Region: analysis.Region, Settlement: analysis.Settlement, District: analysis.District, ViolationType: analysis.ViolationType);
                 if (analysis.ViolationType is null)
                     return new(analysis.Intent, "Выберите подходящий тип нарушения в разделе «Сообщить о нарушении», чтобы получить рекомендации из базы.", [ViolationAction(violationParameters)]);
-                var advice = await violations.GetRecommendationsAsync(new() { Type = analysis.ViolationType, Location = analysis.Location }, cancellationToken);
+                if (analysis.Region is null)
+                    return new(analysis.Intent, "Укажите регион в разделе «Сообщить о нарушении», чтобы подобрать организацию.", [ViolationAction(violationParameters)]);
+                var advice = await violations.GetRecommendationsAsync(new() { Type = analysis.ViolationType, Region = analysis.Region, Settlement = analysis.Settlement, District = analysis.District }, cancellationToken);
                 if (advice is null)
                     return new(analysis.Intent, "Тип нарушения не найден в базе. Выберите тип в разделе «Сообщить о нарушении».", [ViolationAction()]);
                 return new(analysis.Intent, $"Ситуация: {advice.Type.Name}. Рекомендации получены из базы Экопомощника.",
@@ -43,8 +45,8 @@ public sealed class ChatService(ILlmIntentService llm, RecyclingService recyclin
                 var action = analysis.Section switch
                 {
                     "home" => new ChatActionDto("Главная", "/"),
-                    "recycling" => RecyclingAction(new(analysis.Item, analysis.City, analysis.District)),
-                    "violations" => ViolationAction(new(ViolationType: analysis.ViolationType, Location: analysis.Location)),
+                    "recycling" => RecyclingAction(new(analysis.Item, analysis.Region, analysis.Settlement, analysis.District)),
+                    "violations" => ViolationAction(new(Region: analysis.Region, Settlement: analysis.Settlement, District: analysis.District, ViolationType: analysis.ViolationType)),
                     "assistant" => new ChatActionDto("AI-помощник", "/assistant.html"),
                     _ => null
                 };
@@ -53,7 +55,7 @@ public sealed class ChatService(ILlmIntentService llm, RecyclingService recyclin
                     : new(analysis.Intent, $"Нужный раздел: «{action.Label}».", [action]);
 
             case "ecology_help":
-                return new(analysis.Intent, "Экопомощник помогает найти пункты сдачи вещей и рекомендации при экологических нарушениях. Укажите предмет и город или опишите нарушение. Фактические сведения доступны в базе сервиса.", [RecyclingAction(), ViolationAction()]);
+                return new(analysis.Intent, "Экопомощник помогает найти пункты сдачи вещей и рекомендации при экологических нарушениях. Укажите предмет и регион или опишите нарушение. Фактические сведения доступны в базе сервиса.", [RecyclingAction(), ViolationAction()]);
             default:
                 return new("unknown", UnknownMessage, []);
         }

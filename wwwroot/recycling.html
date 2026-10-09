@@ -11,7 +11,7 @@
     <p class="storage-notice advice-note" role="status" hidden></p>
     <section data-panel="intro" class="guide-intro">
       <div class="guide-copy"><p class="eyebrow">Сервис для осознанного города</p><h1 class="display">Найдём, куда сдать <span class="display-accent">вещь</span> с пользой</h1><p class="lead">Подскажем, как подготовить предмет и где его примут.</p><button class="button" type="button" data-go="item">Начать поиск →</button></div>
-      <aside class="info-block"><div class="info-panel"><p class="eyebrow">Маленький шаг</p><p class="info-title">У вещей всегда есть следующий маршрут.</p><p class="info-text">Выбирайте повторное использование, переработку или правильную утилизацию.</p></div><p class="info-caption">В демонстрационной базе — учебные пункты Москвы. Их адреса и часы работы приведены для знакомства с сервисом.</p></aside>
+      <aside class="info-block"><div class="info-panel"><p class="eyebrow">Маленький шаг</p><p class="info-title">У вещей всегда есть следующий маршрут.</p><p class="info-text">Выбирайте повторное использование, переработку или правильную утилизацию.</p></div><p class="info-caption">В демонстрационной базе — учебные пункты Москвы, Санкт-Петербурга и Ленинградской области. Их адреса и часы работы приведены для знакомства с сервисом.</p></aside>
     </section>
     <nav class="steps" id="wizard-steps" aria-label="Этапы поиска" hidden></nav>
     <form class="form-screen" id="item-form" data-panel="item" hidden>
@@ -21,7 +21,7 @@
     </form>
     <form class="form-screen" id="location-form" data-panel="location" hidden>
       <p class="search-context" id="item-context"></p><h1 class="form-title" tabindex="-1">Где вы находитесь?</h1>
-      <div class="input-group"><label><span class="field-label">Город</span><input id="city" name="city" maxlength="120" required autocomplete="address-level2"></label><label><span class="field-label">Район (необязательно)</span><input id="district" name="district" maxlength="120" placeholder="Например, Арбат" autocomplete="off"></label></div>
+      <div class="input-group location-fields"><label><span class="field-label">Регион</span><input id="region" name="region" maxlength="120" required placeholder="Например, Ленинградская область" autocomplete="address-level1"></label><label><span class="field-label">Населённый пункт (необязательно)</span><input id="settlement" name="settlement" maxlength="120" placeholder="Например, Всеволожск" autocomplete="address-level2"></label><label><span class="field-label">Район (необязательно)</span><input id="district" name="district" maxlength="120" placeholder="Например, Всеволожский район" autocomplete="off"></label></div>
       <div class="form-actions"><button class="button-secondary" type="button" data-go="item">← Вернуться к предмету</button><button class="button" type="submit">Показать пункты</button></div>
     </form>
     <section class="result-screen" data-panel="result" hidden>

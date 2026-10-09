@@ -101,8 +101,8 @@ public sealed class GeminiIntentService(HttpClient http, IConfiguration configur
         }
         result = result with
         {
-            Item = Clean(result.Item, 120), City = Clean(result.City, 120), District = Clean(result.District, 120),
-            ViolationType = Clean(result.ViolationType, 120), Location = Clean(result.Location, 300), Section = Clean(result.Section, 120)
+            Item = Clean(result.Item, 120), Region = Clean(result.Region, 120), Settlement = Clean(result.Settlement, 120), District = Clean(result.District, 120),
+            ViolationType = Clean(result.ViolationType, 120), Section = Clean(result.Section, 120)
         };
         if (result.ViolationType is not null && !violationTypes.Any(type => type.Code == result.ViolationType)) throw InvalidOutput();
         if (result.Section is not null && !Sections.Contains(result.Section, StringComparer.Ordinal)) throw InvalidOutput();
@@ -118,10 +118,10 @@ public sealed class GeminiIntentService(HttpClient http, IConfiguration configur
         {
             ["intent"] = new { type = "string", @enum = Intents },
             ["item"] = NullableText("Предмет в именительном падеже; по возможности название или синоним категории справочника."),
-            ["city"] = NullableText("Только явно указанный город в именительном падеже: в Москве → Москва."),
+            ["region"] = NullableText("Регион: каноническое название субъекта РФ, например Москва, Санкт-Петербург, Ленинградская область. Нет определённого региона → null."),
+            ["settlement"] = NullableText("Населённый пункт в канонической форме, например Всеволожск. Для Москвы и Санкт-Петербурга, указанных как регион, оставь null."),
             ["district"] = NullableText("Только явно указанный район в именительном падеже."),
             ["violationType"] = NullableEnum(types.Select(type => type.Code)),
-            ["location"] = NullableText("Только явно указанное местоположение нарушения; не придумывай город для слов во дворе."),
             ["section"] = NullableEnum(Sections)
         };
         return new { type = "object", properties, required = properties.Keys.ToArray(), additionalProperties = false };
@@ -141,15 +141,27 @@ public sealed class GeminiIntentService(HttpClient http, IConfiguration configur
         - ecology_help: тематический вопрос об экологии или возможностях сервиса без конкретного сценария.
         - unknown: прочие темы; все остальные поля null.
         Нарушение важнее отдельных слов «мусор», «отходы»! «Во дворе постоянно сжигают мусор. Что делать?»
-        → environmental_violation, violationType=waste_burning, location=null. Это НЕ find_disposal.
-        «Куда сдать батарейки в Москве?» → find_disposal, item=батарейки, city=Москва.
+        → environmental_violation, violationType=waste_burning, region=null, settlement=null, district=null. Это НЕ find_disposal.
+        «Куда сдать батарейки в Москве?» → find_disposal, item=батарейки, region=Москва, settlement=null.
         «Где найти раздел для сообщения об экологическом нарушении?» → navigation, section=violations.
         section — только код home/recycling/violations/assistant, никогда URL; нужен только для navigation.
-        Город, район и место извлекай только из сообщения. «Рядом со мной», «во дворе», «у дома» не задают город.
+        Для всех сценариев используй одну модель местоположения: region (регион), settlement (населённый пункт), district (район).
+        Нормализацию названий выполняешь ТЫ при извлечении: именительный падеж, без предлогов и префиксов «г./город/район».
+        Регион — субъект РФ. Москва и Санкт-Петербург являются регионами: settlement для них null.
+        Для формулировок «в Москве», «из Москвы», «под Москвой» возвращай region=Москва, settlement=null; не заменяй их Московской областью.
+        «в Москве, район Арбат» → region=Москва, settlement=null, district=Арбат.
+        «в Санкт-Петербурге, Петроградский район» → region=Санкт-Петербург, settlement=null, district=Петроградский.
+        «Ленинградская область, во Всеволожске, Всеволожский район» → region=Ленинградская область, settlement=Всеволожск, district=Всеволожский.
+        Санкт-Петербург и Ленинградская область — разные регионы, не подменяй один другим.
+        Не угадывай неназванный регион по населённому пункту: «в Казани» → region=null, settlement=Казань.
+        Отсутствующие или неоднозначные параметры оставляй null. Не подставляй местоположение по умолчанию.
+        «Во дворе», «у дома», «рядом со мной» не определяют регион. Не путай реку и город: «река Москва в Коломне» → settlement=Коломна, region=null.
+        Для нарушения извлекай место самого нарушения, а не происхождение вещей или другие упоминания.
+        Backend использует готовые параметры, не склоняет названия и не определяет регион по адресу.
         item — именительный падеж, предпочитай соответствующее название/синоним справочника; неизвестный предмет сохрани, не подменяй.
-        Для environmental_violation заполни violationType кодом подходящего типа справочника, location — указанным местом.
+        Для environmental_violation заполни violationType кодом справочника и region/settlement/district.
         Если тип не подходит или непонятен, violationType=null; не придумывай новый код.
-        Для find_disposal заполняй item/city/district; ненужные поля оставляй null.
+        Для find_disposal заполняй item/region/settlement/district; ненужные поля оставляй null.
         Справочник категорий и синонимов: {{JsonSerializer.Serialize(categories.Select(c => new { c.Name, c.Aliases }), JsonOptions)}}
         Справочник типов нарушений: {{JsonSerializer.Serialize(types.Select(t => new { t.Code, t.Name }), JsonOptions)}}
         """;

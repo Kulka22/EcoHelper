@@ -27,11 +27,6 @@ namespace EcoHelper.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("District")
                         .HasMaxLength(120)
                         .HasColumnType("TEXT");
@@ -39,6 +34,15 @@ namespace EcoHelper.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Region")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Settlement")
+                        .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Website")
@@ -52,7 +56,7 @@ namespace EcoHelper.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("City", "District");
+                    b.HasIndex("Region", "Settlement", "District");
 
                     b.ToTable("CollectionPoints");
                 });
@@ -78,17 +82,25 @@ namespace EcoHelper.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("City")
-                        .HasMaxLength(120)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Description")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("District")
+                        .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(250)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Region")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Settlement")
+                        .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("ViolationTypeId")
@@ -101,7 +113,7 @@ namespace EcoHelper.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ViolationTypeId", "City");
+                    b.HasIndex("ViolationTypeId", "Region", "Settlement", "District");
 
                     b.ToTable("Organizations");
                 });

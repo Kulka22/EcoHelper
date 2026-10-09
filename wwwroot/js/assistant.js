@@ -60,20 +60,31 @@ function renderReply(slot, data) {
 
 function transferParameters(url, parameters) {
   if (!parameters || !Object.values(parameters).some(value => typeof value === 'string' && value.trim())) return;
+  const recognized = value => typeof value === 'string' && value.trim() ? value.trim() : null;
   if (url === '/recycling.html') {
+    if (!['item', 'region', 'settlement', 'district'].some(field => recognized(parameters[field]) !== null)) return;
     const draft = scenarioDraft('recycling');
-    Object.assign(draft.data, {
-      item: parameters.item ?? '', city: parameters.city ?? '', district: parameters.district ?? '',
-      screen: parameters.item ? 'location' : 'item',
-    });
+    for (const field of ['item', 'region', 'settlement', 'district']) {
+      const value = recognized(parameters[field]);
+      if (value !== null) draft.data[field] = value;
+    }
+    draft.data.screen = draft.data.item.trim() ? 'location' : 'item';
     draft.save();
   }
   if (url === '/violations.html') {
+    const type = recognized(parameters.violationType);
+    if (type === null && !['region', 'settlement', 'district'].some(field => recognized(parameters[field]) !== null)) return;
     const draft = scenarioDraft('violations');
-    Object.assign(draft.data, {
-      typeCode: parameters.violationType ?? '', location: parameters.location ?? '', description: '',
-      screen: parameters.violationType ? 'location' : 'type',
-    });
+    if (type !== null) {
+      draft.data.typeCode = type;
+      draft.data.resolvedTypeCode = ''; draft.data.resolvedDescription = '';
+    }
+    for (const field of ['region', 'settlement', 'district']) {
+      const value = recognized(parameters[field]);
+      if (value !== null) draft.data[field] = value;
+    }
+    const chosen = draft.data.typeCode || (draft.data.resolvedDescription === draft.data.description.trim() ? draft.data.resolvedTypeCode : '');
+    draft.data.screen = chosen ? 'location' : 'type';
     draft.save();
   }
 }

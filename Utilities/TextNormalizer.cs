@@ -8,8 +8,11 @@ public static class TextNormalizer
     public static string Normalize(string? value) =>
         Regex.Replace((value ?? string.Empty).Trim().ToLowerInvariant().Replace('ё', 'е'), @"\s+", " ");
 
-    public static string City(string? value) =>
+    public static string Settlement(string? value) =>
         Regex.Replace(Normalize(value), @"^(?:город\s+|г\.\s*|г\s+)", string.Empty);
+
+    public static string Region(string? value) =>
+        Regex.Replace(Settlement(value), @"^регион\s+", string.Empty);
 
     public static string District(string? value) =>
         Regex.Replace(Regex.Replace(Normalize(value), @"^(?:район|р-н)\s+", string.Empty),

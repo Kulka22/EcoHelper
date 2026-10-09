@@ -36,11 +36,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             entity.Property(point => point.Name).HasMaxLength(200).IsRequired();
             entity.Property(point => point.Address).HasMaxLength(300).IsRequired();
-            entity.Property(point => point.City).HasMaxLength(120).IsRequired();
+            entity.Property(point => point.Region).HasMaxLength(120).IsRequired();
+            entity.Property(point => point.Settlement).HasMaxLength(120);
             entity.Property(point => point.District).HasMaxLength(120);
             entity.Property(point => point.WorkingHours).HasMaxLength(300).IsRequired();
             entity.Property(point => point.Website).HasMaxLength(500);
-            entity.HasIndex(point => new { point.City, point.District });
+            entity.HasIndex(point => new { point.Region, point.Settlement, point.District });
         });
 
         modelBuilder.Entity<CollectionPointWasteCategory>(entity =>
@@ -64,12 +65,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Organization>(entity =>
         {
             entity.Property(organization => organization.Name).HasMaxLength(250).IsRequired();
-            entity.Property(organization => organization.City).HasMaxLength(120);
+            entity.Property(organization => organization.Region).HasMaxLength(120);
+            entity.Property(organization => organization.Settlement).HasMaxLength(120);
+            entity.Property(organization => organization.District).HasMaxLength(120);
             entity.Property(organization => organization.Website).HasMaxLength(500).IsRequired();
             entity.Property(organization => organization.Description).IsRequired();
             entity.HasOne(organization => organization.ViolationType).WithMany(type => type.Organizations)
                 .HasForeignKey(organization => organization.ViolationTypeId);
-            entity.HasIndex(organization => new { organization.ViolationTypeId, organization.City });
+            entity.HasIndex(organization => new { organization.ViolationTypeId, organization.Region, organization.Settlement, organization.District });
         });
     }
 

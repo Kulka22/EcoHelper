@@ -26,17 +26,15 @@ function verify(data, test) {
   if (test.url) assert.equal(data.actions[0].url, test.url);
   if (test.intent === 'find_disposal') {
     assert.equal(data.recycling.category.code, 'batteries');
-    assert.equal(data.recycling.city, 'Москва');
+    assert.equal(data.recycling.location.region, 'Москва');
     assert.equal(data.recycling.points.length, 1);
     assert.match(data.recycling.preparationInstructions[0], /батарейки/);
   }
   if (test.intent === 'environmental_violation') {
-    assert.equal(data.violation.type.code, 'waste_burning');
-    assert.ok(data.violation.location === null || data.violation.location.toLowerCase() === 'во дворе');
-    assert.equal(data.violation.matchedCity, null);
-    assert.equal(data.violation.isGeneralAdvice, true);
-    assert.equal(data.violation.organizations.length, 1);
-    assert.match(data.violation.recommendations[0], /огня и дыма/);
+    assert.equal(data.violation, null);
+    assert.equal(data.actions[0].parameters.violationType, 'waste_burning');
+    assert.equal(data.actions[0].parameters.region, null);
+    assert.match(data.message, /регион/i);
   }
   if (test.intent === 'unknown') { assert.equal(data.message, unknown); assert.equal(data.actions.length, 0); }
 }
@@ -109,7 +107,7 @@ try {
         await page.waitForURL(`**${test.url}`);
         if (test.intent === 'find_disposal') {
           await page.locator('#location-form').waitFor();
-          assert.equal(await page.locator('#city').inputValue(), 'Москва');
+          assert.equal(await page.locator('#region').inputValue(), 'Москва');
           const draft = JSON.parse(await page.evaluate(() => sessionStorage.getItem('ecohelper.recycling.v1')));
           assert.match(draft.item.toLowerCase(), /батарейки/);
           assert.equal(draft.district, '');
@@ -118,7 +116,7 @@ try {
         }
         if (test.intent === 'environmental_violation') {
           await page.locator('#violation-location-form').waitFor();
-          assert.equal(await page.locator('#location').inputValue(), data.violation.location ?? '');
+          assert.equal(await page.locator('#region').inputValue(), data.actions[0].parameters.region ?? '');
           const draft = JSON.parse(await page.evaluate(() => sessionStorage.getItem('ecohelper.violations.v1')));
           assert.equal(draft.typeCode, 'waste_burning');
           await page.getByRole('button', { name: 'Назад к описанию' }).click();

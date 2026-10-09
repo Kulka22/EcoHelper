@@ -61,7 +61,7 @@ try {
 
     Test-Case 'All six categories have suitable demo points' {
         foreach ($code in @('glass', 'batteries', 'clothes', 'plastic_caps', 'paper', 'electronics')) {
-            $response = Get-Response '/api/recycling/search' @{ item = $code; city = 'Москва' }
+            $response = Get-Response '/api/recycling/search' @{ item = $code; region = 'Москва' }
             Assert ($response.Status -eq 200 -and $response.Json.category.code -eq $code) "Category failed: $code"
             Assert (@($response.Json.points).Count -gt 0) "No points for $code"
             foreach ($point in $response.Json.points) {
@@ -70,14 +70,14 @@ try {
         }
     }
 
-    Test-Case 'Russian case, whitespace, city and district prefixes' {
-        $response = Get-Response '/api/recycling/search' @{ item = '  СТЕКЛЯННАЯ   БАНКА  '; city = ' г. МОСКВА '; district = ' район ДОРОГОМИЛОВО ' }
+    Test-Case 'Russian case, whitespace, region and district prefixes' {
+        $response = Get-Response '/api/recycling/search' @{ item = '  СТЕКЛЯННАЯ   БАНКА  '; region = ' г. МОСКВА '; district = ' район ДОРОГОМИЛОВО ' }
         Assert ($response.Status -eq 200 -and $response.Json.category.code -eq 'glass') 'Normalization failed.'
         Assert (@($response.Json.points).Count -eq 1) 'District filter failed.'
     }
 
     Test-Case 'Batteries do not return glass points or generic glass instructions' {
-        $response = Get-Response '/api/recycling/search' @{ item = 'Батарейки'; city = 'Москва' }
+        $response = Get-Response '/api/recycling/search' @{ item = 'Батарейки'; region = 'Москва' }
         Assert (@($response.Json.points).Count -eq 1) 'Expected one battery point.'
         Assert ($response.Json.points[0].acceptedCategories.code -notcontains 'glass') 'Battery search returned a glass point.'
         Assert (($response.Json.preparationInstructions -join ' ').Contains('Не разбирайте')) 'Missing category-specific instructions.'
@@ -86,33 +86,35 @@ try {
     }
 
     Test-Case 'Unknown item returns a meaningful empty result' {
-        $response = Get-Response '/api/recycling/search' @{ item = 'неизвестный предмет'; city = 'Москва' }
+        $response = Get-Response '/api/recycling/search' @{ item = 'неизвестный предмет'; region = 'Москва' }
         Assert ($response.Status -eq 200 -and $null -eq $response.Json.category) 'Unknown item handling failed.'
         Assert (@($response.Json.points).Count -eq 0 -and $response.Json.message) 'Missing empty result.'
     }
 
-    Test-Case 'Unknown city preserves preparation instructions' {
-        $response = Get-Response '/api/recycling/search' @{ item = 'glass'; city = 'Казань' }
-        Assert ($response.Status -eq 200 -and @($response.Json.points).Count -eq 0) 'City filter failed.'
+    Test-Case 'Unknown region preserves preparation instructions' {
+        $response = Get-Response '/api/recycling/search' @{ item = 'glass'; region = 'Казань' }
+        Assert ($response.Status -eq 200 -and @($response.Json.points).Count -eq 0) 'Region filter failed.'
         Assert (@($response.Json.preparationInstructions).Count -gt 0) 'Preparation instructions were lost.'
     }
 
-    Test-Case 'Different district excludes unsuitable points' {
-        $response = Get-Response '/api/recycling/search' @{ item = 'batteries'; city = 'Москва'; district = 'Дорогомилово' }
-        Assert ($response.Status -eq 200 -and @($response.Json.points).Count -eq 0) 'District was ignored.'
+    Test-Case 'Different district falls back to region' {
+        $response = Get-Response '/api/recycling/search' @{ item = 'batteries'; region = 'Москва'; district = 'Дорогомилово' }
+        Assert ($response.Status -eq 200 -and @($response.Json.points).Count -eq 1 -and $response.Json.match.level -eq 'region' -and $response.Json.match.isFallback) 'Region fallback failed.'
     }
 
-    Test-Case 'Blank optional district means entire city' {
-        $response = Get-Response '/api/recycling/search' @{ item = 'electronics'; city = 'город Москва'; district = '  ' }
+    Test-Case 'Blank optional district means entire region' {
+        $response = Get-Response '/api/recycling/search' @{ item = 'electronics'; region = 'город Москва'; district = '  ' }
         Assert ($response.Status -eq 200 -and @($response.Json.points).Count -eq 2) 'Blank district handling failed.'
-        Assert ($null -eq $response.Json.district) 'Blank district was not normalized to null.'
+        Assert ($null -eq $response.Json.location.district) 'Blank district was not normalized to null.'
     }
 
     Test-Case 'Missing, blank and oversized recycling parameters produce HTTP 400' {
         foreach ($query in @(
-            @{ city = 'Москва' }, @{ item = 'glass' }, @{ item = '  '; city = 'Москва' },
-            @{ item = 'glass'; city = '  ' }, @{ item = ('x' * 121); city = 'Москва' },
-            @{ item = 'glass'; city = 'Москва'; district = ('x' * 121) }
+            @{ region = 'Москва' }, @{ item = 'glass' }, @{ item = '  '; region = 'Москва' },
+            @{ item = 'glass'; region = '  ' }, @{ item = ('x' * 121); region = 'Москва' },
+            @{ item = 'glass'; region = 'Москва'; district = ('x' * 121) },
+            @{ item = 'glass'; region = ('x' * 121) },
+            @{ item = 'glass'; region = 'Москва'; settlement = ('x' * 121) }
         )) {
             $response = Get-Response '/api/recycling/search' $query
             Assert ($response.Status -eq 400 -and $response.MediaType -eq 'application/problem+json') 'Expected validation problem.'
@@ -121,7 +123,7 @@ try {
     }
 
     Test-Case 'Input resembling SQL remains ordinary search text' {
-        $response = Get-Response '/api/recycling/search' @{ item = "' OR 1=1 --"; city = 'Москва' }
+        $response = Get-Response '/api/recycling/search' @{ item = "' OR 1=1 --"; region = 'Москва' }
         Assert ($response.Status -eq 200 -and @($response.Json.points).Count -eq 0) 'Unsafe search behavior.'
     }
 
@@ -133,44 +135,46 @@ try {
 
     Test-Case 'Every ready violation type returns general advice without LLM' {
         foreach ($code in @('illegal_dumping', 'waste_burning', 'water_pollution', 'illegal_logging')) {
-            $response = Get-Response '/api/violations/recommendations' @{ type = $code }
+            $response = Get-Response '/api/violations/recommendations' @{ type = $code; region = 'Неизвестный регион' }
             Assert ($response.Status -eq 200 -and $response.Json.type.code -eq $code) "Failed type: $code"
-            Assert ($response.Json.isGeneralAdvice -eq $true -and $null -eq $response.Json.matchedCity) 'Expected general advice.'
+            Assert ($response.Json.isGeneralAdvice -eq $true -and $response.Json.match.level -eq 'none') 'Expected general advice.'
             Assert (@($response.Json.recommendations).Count -gt 0 -and @($response.Json.whatToRecord).Count -gt 0) 'Advice is missing.'
-            Assert (@($response.Json.organizations).Count -eq 1 -and $null -eq $response.Json.organizations[0].city) 'Unexpected local organization.'
+            Assert (@($response.Json.organizations).Count -eq 1 -and $null -eq $response.Json.organizations[0].location) 'Unexpected local organization.'
         }
     }
 
     Test-Case 'Moscow location selects local and general organizations' {
-        $response = Get-Response '/api/violations/recommendations' @{ type = 'waste_burning'; location = 'г. МОСКВА, район Арбат' }
-        Assert ($response.Status -eq 200 -and $response.Json.matchedCity -eq 'Москва') 'City recognition failed.'
+        $response = Get-Response '/api/violations/recommendations' @{ type = 'waste_burning'; region = 'г. МОСКВА'; district = 'Арбат' }
+        Assert ($response.Status -eq 200 -and $response.Json.organizations[0].location.region -eq 'Москва') 'Region recognition failed.'
         Assert ($response.Json.isGeneralAdvice -eq $false -and @($response.Json.organizations).Count -eq 2) 'Local organization missing.'
         foreach ($organization in $response.Json.organizations) {
             Assert ($organization.website.StartsWith('https://')) 'Missing organization information link.'
         }
     }
 
-    Test-Case 'Unsupported or incomplete location falls back to general advice' {
-        foreach ($location in @('Казань, ул. Московская', 'Дорогомилово', 'Подмосковье', '  ')) {
-            $response = Get-Response '/api/violations/recommendations' @{ type = 'illegal_dumping'; location = $location }
+    Test-Case 'Unsupported region falls back to general advice' {
+        foreach ($location in @('Казань, ул. Московская', 'Дорогомилово', 'Подмосковье')) {
+            $response = Get-Response '/api/violations/recommendations' @{ type = 'illegal_dumping'; region = $location }
             Assert ($response.Status -eq 200 -and $response.Json.isGeneralAdvice -eq $true) "Unexpected location match: $location"
-            Assert (@($response.Json.organizations).Count -eq 1 -and $null -eq $response.Json.organizations[0].city) 'Fictional local organization.'
+            Assert (@($response.Json.organizations).Count -eq 1 -and $null -eq $response.Json.organizations[0].location) 'Fictional local organization.'
         }
     }
 
     Test-Case 'Violation names support Cyrillic case and yo/e normalization' {
-        $response = Get-Response '/api/violations/recommendations' @{ type = ' ЗАГРЯЗНЕНИЕ ВОДОЕМА ' }
+        $response = Get-Response '/api/violations/recommendations' @{ type = ' ЗАГРЯЗНЕНИЕ ВОДОЕМА '; region = 'Москва' }
         Assert ($response.Status -eq 200 -and $response.Json.type.code -eq 'water_pollution') 'Type name normalization failed.'
         $types = (Get-Response '/api/violations/types').Json
-        $byId = Get-Response '/api/violations/recommendations' @{ type = [string]$types[0].id }
+        $byId = Get-Response '/api/violations/recommendations' @{ type = [string]$types[0].id; region = 'Москва' }
         Assert ($byId.Status -eq 200 -and $byId.Json.type.code -eq $types[0].code) 'Type ID lookup failed.'
     }
 
     Test-Case 'Unknown, missing and oversized violation parameters produce HTTP 400' {
         foreach ($query in @(
-            @{}, @{ type = '  ' }, @{ type = 'unknown' }, @{ type = ('x' * 121) },
-            @{ type = 'waste_burning'; location = ('x' * 301) },
-            @{ type = 'Во дворе постоянно сжигают мусор. Что делать?' }
+            @{}, @{ type = '  ' }, @{ type = 'unknown'; region = 'Москва' }, @{ type = ('x' * 121) },
+            @{ type = 'waste_burning'; region = ('x' * 121) },
+            @{ type = 'waste_burning'; region = 'Москва'; settlement = ('x' * 121) },
+            @{ type = 'waste_burning'; region = 'Москва'; district = ('x' * 121) },
+            @{ type = 'Во дворе постоянно сжигают мусор. Что делать?'; region = 'Москва' }
         )) {
             $response = Get-Response '/api/violations/recommendations' $query
             Assert ($response.Status -eq 400 -and $null -ne $response.Json.errors) 'Expected validation error, not fake classification.'

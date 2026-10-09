@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using EcoHelper.Data;
 using EcoHelper.DTO;
 using EcoHelper.Utilities;
@@ -27,34 +26,23 @@ public class ViolationService(AppDbContext db)
             return null;
         }
 
-        var location = string.IsNullOrWhiteSpace(request.Location) ? null : request.Location.Trim();
+        var location = request.ToLocation();
         var candidates = await db.Organizations.AsNoTracking()
             .Where(organization => organization.ViolationTypeId == type.Id)
             .OrderBy(organization => organization.Id).ToListAsync(cancellationToken);
 
-        var matchedCities = location is null ? [] : candidates
-            .Where(organization => organization.City is not null)
-            .Select(organization => organization.City!).Distinct()
-            .Where(city => Regex.IsMatch(TextNormalizer.Normalize(location),
-                @"(?<![\p{L}\p{N}])" + Regex.Escape(TextNormalizer.City(city)) + @"(?![\p{L}\p{N}])"))
-            .ToArray();
-        var matchedCity = matchedCities.Length == 1 ? matchedCities[0] : null;
-
-        var organizations = candidates
-            .Where(organization => organization.City is null || organization.City == matchedCity)
-            .OrderBy(organization => organization.City is null ? 1 : 0)
-            .ThenBy(organization => organization.Id)
+        var (matched, match) = LocationMatcher.Find(candidates.Where(organization => organization.Region is not null),
+            location, organization => organization.Region, organization => organization.Settlement, organization => organization.District);
+        var organizations = matched.Concat(candidates.Where(organization => organization.Region is null))
             .Select(organization => new OrganizationDto(
-                organization.Id, organization.Name, organization.City, organization.Website, organization.Description))
+                organization.Id, organization.Name, organization.Region is null ? null : new(organization.Region, organization.Settlement, organization.District), organization.Website, organization.Description))
             .ToArray();
 
-        var message = location is null
-            ? "Местоположение не указано. Показаны общие рекомендации и справочный ресурс."
-            : matchedCity is null
-                ? "Не удалось подобрать местную организацию из демонстрационной базы. Показаны общие рекомендации и справочный ресурс."
-                : null;
+        var message = matched.Count == 0
+            ? "В указанном регионе нет подходящей организации в демонстрационной базе. Показаны общие рекомендации и справочный ресурс."
+            : LocationMatcher.FallbackMessage(match);
 
-        return new(new(type.Id, type.Code, type.Name), location, matchedCity, matchedCity is null,
+        return new(new(type.Id, type.Code, type.Name), location, match, matched.Count == 0,
             TextNormalizer.Lines(type.Recommendations), TextNormalizer.Lines(type.WhatToRecord),
             organizations, message, true);
     }
